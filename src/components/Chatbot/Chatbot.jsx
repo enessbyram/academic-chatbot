@@ -1,6 +1,3 @@
-import { faq } from "../../utils/faq";
-import advisor from "../../utils/advisor";
-import { analyzeIntent } from "../../utils/intent";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPaperPlane } from "@fortawesome/free-solid-svg-icons";
 import { useState, useRef, useEffect } from "react";
@@ -10,8 +7,7 @@ function Chatbot() {
     { from: "bot", text: "Merhaba! Size nasıl yardımcı olabilirim?" },
   ]);
   const [input, setInput] = useState("");
-
-  const chatBoxRef = useRef(null); // <-- scroll için ref
+  const chatBoxRef = useRef(null); // scroll için ref
 
   // --------------------
   // Otomatik scroll
@@ -22,51 +18,27 @@ function Chatbot() {
     }
   }, [messages]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
 
     const userMessage = { from: "user", text: input };
-    const lowerInput = input.toLowerCase();
+    setMessages(prev => [...prev, userMessage]);
+    setInput(""); // input kutusunu hemen temizle
 
-    // --------------------
-    // 1️⃣ Intent analizi
-    // --------------------
-    const intent = analyzeIntent(input);
-
-    let botResponse;
-
-    if (intent === "greeting") {
-      botResponse = { from: "bot", text: "Merhaba! Size akademik konularda yardımcı olabilirim." };
-    } else if (intent === "thanks") {
-      botResponse = { from: "bot", text: "Rica ederim, her zaman buradayım!" };
-    } else if (intent === "bye") {
-      botResponse = { from: "bot", text: "Görüşmek üzere! İyi çalışmalar." };
-    } else if (intent === "bad") {
-      botResponse = { from: "bot", text: "Lütfen nazik olun 🙂" };
-    } else {
-      // --------------------
-      // 2️⃣ FAQ kontrolü
-      // --------------------
-      let found = null;
-      for (const item of faq) {
-        if (item.keywords.some((key) => lowerInput.includes(key))) {
-          found = item;
-          break;
-        }
-      }
-
-      if (found) {
-        botResponse = { from: "bot", text: found.answer };
-      } else {
-        botResponse = {
-          from: "bot",
-          text: `Bu konuda emin değilim. Akademik danışmanınıza ulaşmak için ${advisor.name} (${advisor.email}) ile iletişime geçebilirsiniz.`,
-        };
-      }
+    try {
+      const res = await fetch("http://localhost:3000/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: input })
+      });
+      const data = await res.json();
+      setMessages(prev => [...prev, { from: "bot", text: data.reply }]);
+    } catch (err) {
+      setMessages(prev => [
+        ...prev,
+        { from: "bot", text: "Şu an cevap verilemiyor 😅" }
+      ]);
     }
-
-    setMessages((prev) => [...prev, userMessage, botResponse]);
-    setInput("");
   };
 
   return (

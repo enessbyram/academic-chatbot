@@ -1,5 +1,3 @@
-// utils/faq.js
-
 export const faq = [
 
   // =========================
